@@ -133,18 +133,43 @@ with tab_panduan:
     Arahkan kursor ke titik untuk melihat detail.
 
     ---
+    """)
 
-    ### 🎨 Legenda Warna
+    # Legenda Warna Panduan
+    st.markdown("### 🎨 Legenda Warna")
 
-    Warna heatmap mengikuti **0012.E-2024 Edir Juknis Perencanaan
-    Manajemen Risiko Terintegrasi**:
+    st.markdown(
+        "Warna heatmap mengikuti **0012.E-2024 Edir Juknis Perencanaan "
+        "Manajemen Risiko Terintegrasi**:"
+    )
 
-    - 🟩 **1–5** → Low
-    - 🟨 **6–10** → Low to Moderate
-    - 🟧 **11–15** → Moderate
-    - 🟥 **16–19** → Moderate to High
-    - 🟪 **20–25** → High
+    legenda_panduan = """
+    <div style="display:flex; flex-direction:column; gap:0; margin-top:10px; border-collapse:collapse;">
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#4CAF50; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">Low</div>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#A5D6A7; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">Low to Moderate</div>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#FFFF00; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">Moderate</div>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#FFC000; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">Moderate to High</div>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#ED7D31; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">High</div>
+      </div>
+    </div>
+    """
+    st.markdown(legenda_panduan, unsafe_allow_html=True)
 
+    st.markdown("""
     ---
 
     ### 💡 Tips Penggunaan
@@ -190,7 +215,7 @@ with tab_panduan:
     """)
 
 # =========================================================
-# TAB 2 — DASHBOARD (FASE 1 s/d 5)
+# TAB 2 — DASHBOARD
 # =========================================================
 with tab_dashboard:
 
@@ -489,12 +514,13 @@ with tab_dashboard:
 
     text_values = [[str(matriks_skala[i][j]) for j in range(5)] for i in range(5)]
 
+    # Colorscale baru sesuai permintaan
     colorscale = [
-        [0.00, "#2ecc71"], [0.20, "#2ecc71"],
-        [0.20, "#a8d08d"], [0.40, "#a8d08d"],
-        [0.40, "#ffd966"], [0.60, "#ffd966"],
-        [0.60, "#f4b183"], [0.76, "#f4b183"],
-        [0.76, "#e06666"], [1.00, "#e06666"],
+        [0.00, "#4CAF50"], [0.20, "#4CAF50"],   # 1-5 Low
+        [0.20, "#A5D6A7"], [0.40, "#A5D6A7"],   # 6-10 Low to Moderate
+        [0.40, "#FFFF00"], [0.60, "#FFFF00"],   # 11-15 Moderate
+        [0.60, "#FFC000"], [0.76, "#FFC000"],   # 16-19 Moderate to High
+        [0.76, "#ED7D31"], [1.00, "#ED7D31"],   # 20-25 High
     ]
 
     fig = go.Figure()
@@ -569,14 +595,31 @@ with tab_dashboard:
     - **K1", K2", K3", K4", K5"** → What-If Scenario (border merah)
     """)
 
+    # Legenda Warna Dashboard
     st.markdown("**Legenda Warna (0012.E-2024 Edir Juknis Perencanaan Manajemen Risiko Terintegrasi)**")
+
     legenda_html = """
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
-      <div style="background:#2ecc71;color:white;padding:8px 16px;border-radius:5px;font-weight:bold;">1–5 • Low</div>
-      <div style="background:#a8d08d;color:black;padding:8px 16px;border-radius:5px;font-weight:bold;">6–10 • Low to Moderate</div>
-      <div style="background:#ffd966;color:black;padding:8px 16px;border-radius:5px;font-weight:bold;">11–15 • Moderate</div>
-      <div style="background:#f4b183;color:black;padding:8px 16px;border-radius:5px;font-weight:bold;">16–19 • Moderate to High</div>
-      <div style="background:#e06666;color:white;padding:8px 16px;border-radius:5px;font-weight:bold;">20–25 • High</div>
+    <div style="display:flex; flex-direction:column; gap:0; margin-top:8px;">
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#4CAF50; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">Low</div>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#A5D6A7; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">Low to Moderate</div>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#FFFF00; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">Moderate</div>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#FFC000; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">Moderate to High</div>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <div style="width:120px; height:32px; background:#ED7D31; border:1px solid #ccc;"></div>
+        <div style="padding-left:12px; font-style:italic; font-size:15px;">High</div>
+      </div>
     </div>
     """
     st.markdown(legenda_html, unsafe_allow_html=True)
