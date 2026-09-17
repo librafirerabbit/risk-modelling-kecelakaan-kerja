@@ -1,6 +1,11 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+from scipy.stats import poisson
 
+# =========================================================
+# KONFIGURASI HALAMAN
+# =========================================================
 st.set_page_config(
     page_title="Risk Modelling Kecelakaan Kerja",
     layout="wide"
@@ -21,7 +26,6 @@ st.write(
     "Kamu bisa mengedit angka langsung di dalam tabel."
 )
 
-# Data awal (default) — sama seperti di Excel
 default_data = pd.DataFrame({
     "Tahun": [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026],
     "Tidak Ada Korban": [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -31,7 +35,6 @@ default_data = pd.DataFrame({
     "Fatality": [2, 1, 0, 0, 0, 0, 0, 0, 0],
 })
 
-# Tabel editable
 edited_data = st.data_editor(
     default_data,
     num_rows="dynamic",
@@ -42,7 +45,7 @@ edited_data = st.data_editor(
 st.divider()
 
 # =========================================================
-# RATA-RATA (LAMBDA)
+# FASE 1B — RATA-RATA (LAMBDA)
 # =========================================================
 st.header("2. Rata-Rata Kejadian per Tahun (Lambda)")
 
@@ -74,4 +77,63 @@ st.dataframe(lambda_df, use_container_width=True, hide_index=True)
 
 st.divider()
 
-st.info("Fase 1 selesai. Selanjutnya: perhitungan probabilitas Poisson.")
+# =========================================================
+# FASE 2 — PROBABILITAS POISSON
+# =========================================================
+st.header("3. Probabilitas Poisson")
+
+st.write(
+    "Probabilitas dihitung menggunakan distribusi Poisson "
+    "berdasarkan nilai Lambda tiap kategori dampak. "
+    "Dampak Atas dan Dampak Bawah mengikuti konfigurasi di Excel."
+)
+
+konfigurasi = pd.DataFrame({
+    "Kategori": [
+        "Tidak Ada Korban",
+        "Luka Ringan",
+        "Luka Berat",
+        "Cacat Permanen",
+        "Fatality",
+    ],
+    "Dampak Atas": [5, 5, 5, 5, 2],
+    "Dampak Bawah": [1, 1, 1, 1, 1],
+})
+
+prob_df = konfigurasi.merge(lambda_df, on="Kategori")
+
+def hitung_probabilitas(lam, atas, bawah):
+    if lam <= 0:
+        return 0.0
+    return poisson.cdf(atas, lam) - poisson.cdf(bawah - 1, lam)
+
+prob_df["Probabilitas"] = prob_df.apply(
+    lambda row: hitung_probabilitas(
+        row["Lambda"], row["Dampak Atas"], row["Dampak Bawah"]
+    ),
+    axis=1
+)
+
+prob_df["Probabilitas"] = prob_df["Probabilitas"].round(4)
+
+st.dataframe(
+    prob_df[["Kategori", "Lambda", "Dampak Bawah", "Dampak Atas", "Probabilitas"]],
+    use_container_width=True,
+    hide_index=True
+)
+
+st.divider()
+
+# =========================================================
+# GRAFIK PROBABILITAS
+# =========================================================
+st.subheader("Grafik Probabilitas per Kategori")
+
+st.bar_chart(
+    prob_df.set_index("Kategori")["Probabilitas"],
+    use_container_width=True
+)
+
+st.divider()
+
+st.info("Fase 2 selesai. Selanjutnya: matriks risiko 5x5.")
