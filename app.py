@@ -12,6 +12,57 @@ st.set_page_config(
     layout="wide"
 )
 
+# =========================================================
+# CUSTOM CSS — Header Tabel & Banded Row
+# =========================================================
+st.markdown("""
+<style>
+/* ---------- st.dataframe ---------- */
+[data-testid="stDataFrame"] thead tr th {
+    background-color: #1f4e79 !important;
+    color: white !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    border: 1px solid #d0d0d0 !important;
+}
+[data-testid="stDataFrame"] tbody tr td {
+    border: 1px solid #e0e0e0 !important;
+    padding: 6px 10px !important;
+}
+[data-testid="stDataFrame"] tbody tr:nth-child(even) {
+    background-color: #f5f9ff !important;
+}
+[data-testid="stDataFrame"] tbody tr:nth-child(odd) {
+    background-color: #ffffff !important;
+}
+[data-testid="stDataFrame"] tbody tr:hover {
+    background-color: #e6f0ff !important;
+}
+
+/* ---------- st.data_editor ---------- */
+[data-testid="stDataEditor"] thead tr th {
+    background-color: #1f4e79 !important;
+    color: white !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    border: 1px solid #d0d0d0 !important;
+}
+[data-testid="stDataEditor"] tbody tr td {
+    border: 1px solid #e0e0e0 !important;
+    padding: 6px 10px !important;
+}
+[data-testid="stDataEditor"] tbody tr:nth-child(even) {
+    background-color: #f5f9ff !important;
+}
+[data-testid="stDataEditor"] tbody tr:nth-child(odd) {
+    background-color: #ffffff !important;
+}
+[data-testid="stDataEditor"] tbody tr:hover {
+    background-color: #e6f0ff !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("Risk Modelling Kecelakaan Kerja")
 st.caption("Dashboard pemodelan risiko kecelakaan kerja berbasis Streamlit")
 
@@ -239,7 +290,32 @@ with tab_dashboard:
         default_data,
         num_rows="dynamic",
         use_container_width=True,
-        key="tabel_data_historis"
+        key="tabel_data_historis",
+        column_config={
+            "Tahun": st.column_config.NumberColumn(
+                "Tahun", help="Tahun kejadian", format="%d", width="small",
+            ),
+            "Tidak Ada Korban": st.column_config.NumberColumn(
+                "Tidak Ada Korban", help="Jumlah kejadian tanpa korban",
+                format="%d", width="small",
+            ),
+            "Luka Ringan": st.column_config.NumberColumn(
+                "Luka Ringan", help="Jumlah kejadian luka ringan",
+                format="%d", width="small",
+            ),
+            "Luka Berat": st.column_config.NumberColumn(
+                "Luka Berat", help="Jumlah kejadian luka berat",
+                format="%d", width="small",
+            ),
+            "Cacat Permanen": st.column_config.NumberColumn(
+                "Cacat Permanen", help="Jumlah kejadian cacat permanen",
+                format="%d", width="small",
+            ),
+            "Fatality": st.column_config.NumberColumn(
+                "Fatality", help="Jumlah kejadian fatality",
+                format="%d", width="small",
+            ),
+        },
     )
 
     st.divider()
@@ -514,13 +590,12 @@ with tab_dashboard:
 
     text_values = [[str(matriks_skala[i][j]) for j in range(5)] for i in range(5)]
 
-    # Colorscale baru sesuai permintaan
     colorscale = [
-        [0.00, "#4CAF50"], [0.20, "#4CAF50"],   # 1-5 Low
-        [0.20, "#A5D6A7"], [0.40, "#A5D6A7"],   # 6-10 Low to Moderate
-        [0.40, "#FFFF00"], [0.60, "#FFFF00"],   # 11-15 Moderate
-        [0.60, "#FFC000"], [0.76, "#FFC000"],   # 16-19 Moderate to High
-        [0.76, "#ED7D31"], [1.00, "#ED7D31"],   # 20-25 High
+        [0.00, "#4CAF50"], [0.20, "#4CAF50"],
+        [0.20, "#A5D6A7"], [0.40, "#A5D6A7"],
+        [0.40, "#FFFF00"], [0.60, "#FFFF00"],
+        [0.60, "#FFC000"], [0.76, "#FFC000"],
+        [0.76, "#ED7D31"], [1.00, "#ED7D31"],
     ]
 
     fig = go.Figure()
@@ -595,7 +670,6 @@ with tab_dashboard:
     - **K1", K2", K3", K4", K5"** → What-If Scenario (border merah)
     """)
 
-    # Legenda Warna Dashboard
     st.markdown("**Legenda Warna (0012.E-2024 Edir Juknis Perencanaan Manajemen Risiko Terintegrasi)**")
 
     legenda_html = """
