@@ -22,11 +22,6 @@ st.divider()
 # =========================================================
 st.header("1. Data Historis Kecelakaan Kerja")
 
-st.write(
-    "Tabel di bawah ini berisi data historis kecelakaan kerja. "
-    "Kamu bisa mengedit angka langsung di dalam tabel."
-)
-
 default_data = pd.DataFrame({
     "Tahun": [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026],
     "Tidak Ada Korban": [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -52,11 +47,8 @@ st.header("2. Rata-Rata Kejadian per Tahun (Lambda)")
 
 lambda_df = pd.DataFrame({
     "Kategori": [
-        "Tidak Ada Korban",
-        "Luka Ringan",
-        "Luka Berat",
-        "Cacat Permanen",
-        "Fatality",
+        "Tidak Ada Korban", "Luka Ringan", "Luka Berat",
+        "Cacat Permanen", "Fatality",
     ],
     "Lambda": [
         edited_data["Tidak Ada Korban"].mean(),
@@ -66,10 +58,9 @@ lambda_df = pd.DataFrame({
         edited_data["Fatality"].mean(),
     ],
 })
-
 lambda_df["Lambda"] = lambda_df["Lambda"].round(4)
-st.dataframe(lambda_df, use_container_width=True, hide_index=True)
 
+st.dataframe(lambda_df, use_container_width=True, hide_index=True)
 st.divider()
 
 # =========================================================
@@ -79,20 +70,8 @@ st.header("3. Probabilitas Poisson")
 
 konfigurasi = pd.DataFrame({
     "Kode": ["K1", "K2", "K3", "K4", "K5"],
-    "Kategori": [
-        "Tidak Ada Korban",
-        "Luka Ringan",
-        "Luka Berat",
-        "Cacat Permanen",
-        "Fatality",
-    ],
-    "Tingkat Dampak": [
-        "Sangat Rendah",
-        "Rendah",
-        "Moderat",
-        "Tinggi",
-        "Sangat Tinggi",
-    ],
+    "Kategori": ["Tidak Ada Korban", "Luka Ringan", "Luka Berat", "Cacat Permanen", "Fatality"],
+    "Tingkat Dampak": ["Sangat Rendah", "Rendah", "Moderat", "Tinggi", "Sangat Tinggi"],
     "Dampak Atas": [5, 5, 5, 5, 2],
     "Dampak Bawah": [1, 1, 1, 1, 1],
 })
@@ -105,21 +84,17 @@ def hitung_probabilitas(lam, atas, bawah):
     return poisson.cdf(atas, lam) - poisson.cdf(bawah - 1, lam)
 
 prob_df["Probabilitas"] = prob_df.apply(
-    lambda row: hitung_probabilitas(
-        row["Lambda"], row["Dampak Atas"], row["Dampak Bawah"]
-    ),
+    lambda r: hitung_probabilitas(r["Lambda"], r["Dampak Atas"], r["Dampak Bawah"]),
     axis=1
 )
 prob_df["Probabilitas"] = prob_df["Probabilitas"].round(4)
 
 st.dataframe(
     prob_df[["Kode", "Kategori", "Lambda", "Probabilitas"]],
-    use_container_width=True,
-    hide_index=True
+    use_container_width=True, hide_index=True
 )
 
 st.bar_chart(prob_df.set_index("Kategori")["Probabilitas"], use_container_width=True)
-
 st.divider()
 
 # =========================================================
@@ -153,19 +128,11 @@ matriks_skala = [
 ]
 
 urutan_kemungkinan = [
-    "Sangat Jarang Terjadi",
-    "Jarang Terjadi",
-    "Bisa Terjadi",
-    "Sangat Mungkin Terjadi",
-    "Hampir Pasti Terjadi",
+    "Sangat Jarang Terjadi", "Jarang Terjadi", "Bisa Terjadi",
+    "Sangat Mungkin Terjadi", "Hampir Pasti Terjadi",
 ]
-
 urutan_dampak = [
-    "Sangat Rendah",
-    "Rendah",
-    "Moderat",
-    "Tinggi",
-    "Sangat Tinggi",
+    "Sangat Rendah", "Rendah", "Moderat", "Tinggi", "Sangat Tinggi",
 ]
 
 def level_risiko(k, d):
@@ -187,50 +154,41 @@ st.dataframe(
         "Probabilitas", "Kemungkinan",
         "Level Risiko", "Skala Risiko"
     ]],
-    use_container_width=True,
-    hide_index=True
+    use_container_width=True, hide_index=True
 )
-
 st.divider()
 
 # =========================================================
-# FASE 4 — HEATMAP (VERSI PERBAIKAN)
+# FASE 4 — HEATMAP (VERSI FINAL)
 # =========================================================
 st.header("5. Heatmap Matriks Risiko")
 
-# Warna diskrit berdasarkan skala risiko
-def warna_skala(n):
-    if 1 <= n <= 5:   return "#2ecc71"
-    elif 6 <= n <= 10: return "#a8d08d"
-    elif 11 <= n <= 15: return "#ffd966"
-    elif 16 <= n <= 19: return "#f4b183"
-    else: return "#e06666"
-
-# Label sumbu
-label_dampak = ["1 Sangat Rendah", "2 Rendah", "3 Moderat", "4 Tinggi", "5 Sangat Tinggi"]
+# Label sumbu — SATU SET SAJA, dipakai heatmap & scatter
+label_dampak = [
+    "1 Sangat Rendah", "2 Rendah", "3 Moderat", "4 Tinggi", "5 Sangat Tinggi"
+]
 label_kemungkinan = [
-    "A - Sangat Jarang",
-    "B - Jarang",
-    "C - Bisa",
-    "D - Sangat Mungkin",
-    "E - Hampir Pasti",
+    "A - Sangat Jarang", "B - Jarang", "C - Bisa",
+    "D - Sangat Mungkin", "E - Hampir Pasti",
 ]
 
-# Teks angka di dalam kotak
+# Mapping dari nama kategori ke label sumbu
+map_dampak = dict(zip(urutan_dampak, label_dampak))
+map_kemungkinan = dict(zip(urutan_kemungkinan, label_kemungkinan))
+
 text_values = [[str(matriks_skala[i][j]) for j in range(5)] for i in range(5)]
+
+colorscale = [
+    [0.00, "#2ecc71"], [0.20, "#2ecc71"],
+    [0.20, "#a8d08d"], [0.40, "#a8d08d"],
+    [0.40, "#ffd966"], [0.60, "#ffd966"],
+    [0.60, "#f4b183"], [0.76, "#f4b183"],
+    [0.76, "#e06666"], [1.00, "#e06666"],
+]
 
 fig = go.Figure()
 
-# Heatmap dasar (pakai colorscale diskrit)
-# Nilai 1-25 dipetakan ke 5 blok warna
-colorscale = [
-    [0.00, "#2ecc71"], [0.20, "#2ecc71"],   # 1-5
-    [0.20, "#a8d08d"], [0.40, "#a8d08d"],   # 6-10
-    [0.40, "#ffd966"], [0.60, "#ffd966"],   # 11-15
-    [0.60, "#f4b183"], [0.76, "#f4b183"],   # 16-19
-    [0.76, "#e06666"], [1.00, "#e06666"],   # 20-25
-]
-
+# Heatmap
 fig.add_trace(go.Heatmap(
     z=matriks_skala,
     x=label_dampak,
@@ -245,13 +203,13 @@ fig.add_trace(go.Heatmap(
     xgap=2, ygap=2,
 ))
 
-# Titik kategori aktual
+# Scatter — pakai label yang SAMA dengan heatmap
 for _, row in prob_df.iterrows():
     fig.add_trace(go.Scatter(
-        x=[row["Tingkat Dampak"]],
-        y=[row["Kemungkinan"]],
+        x=[map_dampak[row["Tingkat Dampak"]]],
+        y=[map_kemungkinan[row["Kemungkinan"]]],
         mode="markers+text",
-        marker=dict(size=28, color="white",
+        marker=dict(size=30, color="white",
                     line=dict(color="black", width=2)),
         text=[row["Kode"]],
         textposition="middle center",
@@ -270,17 +228,26 @@ fig.update_layout(
     height=500,
     xaxis_title="Skala Dampak",
     yaxis_title="Skala Kemungkinan",
-    margin=dict(l=80, r=40, t=20, b=60),
+    margin=dict(l=100, r=40, t=20, b=60),
     plot_bgcolor="white",
-    xaxis=dict(side="bottom", tickfont=dict(size=11)),
-    yaxis=dict(tickfont=dict(size=11), autorange="reversed"),
+    xaxis=dict(
+        side="bottom",
+        tickfont=dict(size=11),
+        categoryorder="array",
+        categoryarray=label_dampak,
+    ),
+    yaxis=dict(
+        tickfont=dict(size=11),
+        categoryorder="array",
+        categoryarray=label_kemungkinan,
+        autorange="reversed",
+    ),
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
 # Legenda warna
 st.markdown("**Legenda Warna (0012.E-2024 Edir Juknis Perencanaan Manajemen Risiko Terintegrasi)**")
-
 legenda_html = """
 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
   <div style="background:#2ecc71;color:white;padding:8px 16px;border-radius:5px;font-weight:bold;">1–5 • Low</div>
@@ -292,7 +259,6 @@ legenda_html = """
 """
 st.markdown(legenda_html, unsafe_allow_html=True)
 
-# Keterangan kode
 st.markdown("**Keterangan Kode Kategori**")
 st.dataframe(
     prob_df[["Kode", "Kategori", "Tingkat Dampak", "Kemungkinan", "Level Risiko", "Skala Risiko"]],
