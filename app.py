@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from scipy.stats import poisson
+import plotly.graph_objects as go
 
 # =========================================================
 # KONFIGURASI HALAMAN
@@ -146,11 +147,9 @@ st.header("4. Matriks Risiko 5x5")
 
 st.write(
     "Probabilitas dikonversi menjadi kategori kemungkinan, "
-    "lalu dipetakan ke matriks risiko 5x5 untuk mendapatkan "
-    "level risiko dan skala risiko."
+    "lalu dipetakan ke matriks risiko 5x5."
 )
 
-# --- Fungsi kategori kemungkinan ---
 def kategori_kemungkinan(p):
     if p < 0.2:
         return "Sangat Jarang Terjadi"
@@ -165,10 +164,6 @@ def kategori_kemungkinan(p):
 
 prob_df["Kemungkinan"] = prob_df["Probabilitas"].apply(kategori_kemungkinan)
 
-# --- Matriks level risiko (sesuai Excel) ---
-# Baris: kemungkinan, Kolom: tingkat dampak
-# Urutan kemungkinan: Sangat Jarang, Jarang, Bisa, Sangat Mungkin, Hampir Pasti
-# Urutan dampak: Sangat Rendah, Rendah, Moderat, Tinggi, Sangat Tinggi
 matriks_level = [
     ["Low", "Low", "Low to Moderate", "Moderate", "High"],
     ["Low", "Low to Moderate", "Low to Moderate", "Moderate to High", "High"],
@@ -177,7 +172,6 @@ matriks_level = [
     ["Low to Moderate", "Moderate", "Moderate to High", "High", "High"],
 ]
 
-# --- Matriks skala risiko (sesuai Excel) ---
 matriks_skala = [
     [1, 5, 10, 15, 20],
     [2, 6, 11, 16, 21],
@@ -239,4 +233,88 @@ st.dataframe(
 
 st.divider()
 
-st.info("Fase 3 selesai. Selanjutnya: visualisasi matriks risiko.")
+# =========================================================
+# FASE 4 — HEATMAP MATRIKS RISIKO
+# =========================================================
+st.header("5. Heatmap Matriks Risiko")
+
+st.write(
+    "Visualisasi matriks risiko 5x5. Angka di dalam kotak adalah "
+    "skala risiko. Posisi kategori aktual ditandai dengan lingkaran putih."
+)
+
+# Warna untuk tiap level risiko
+warna_level = {
+    "Low": "#2ecc71",              # hijau
+    "Low to Moderate": "#f1c40f",  # kuning
+    "Moderate": "#e67e22",         # oranye
+    "Moderate to High": "#e74c3c", # merah
+    "High": "#8e44ad",             # ungu
+}
+
+# Matriks skala untuk heatmap (baris = kemungkinan, kolom = dampak)
+z_values = matriks_skala
+
+# Label teks untuk heatmap: level risiko + skala
+text_values = []
+for i in range(5):
+    row_text = []
+    for j in range(5):
+        row_text.append(f"{matriks_level[i][j]}<br>{matriks_skala[i][j]}")
+    text_values.append(row_text)
+
+# Warna custom untuk heatmap (dari skala 1 sampai 25)
+colorscale = [
+    [0.00, "#2ecc71"],  # 1
+    [0.20, "#f1c40f"],  # 5-6
+    [0.45, "#e67e22"],  # 11-13
+    [0.70, "#e74c3c"],  # 16-18
+    [1.00, "#8e44ad"],  # 22-25
+]
+
+fig = go.Figure(data=go.Heatmap(
+    z=z_values,
+    x=urutan_dampak,
+    y=urutan_kemungkinan,
+    text=text_values,
+    texttemplate="%{text}",
+    textfont={"size": 11, "color": "white"},
+    colorscale=colorscale,
+    showscale=False,
+    hovertemplate=(
+        "Kemungkinan: %{y}<br>"
+        "Dampak: %{x}<br>"
+        "Skala: %{z}<extra></extra>"
+    ),
+))
+
+# Tambahkan titik posisi kategori aktual
+for _, row in prob_df.iterrows():
+    fig.add_trace(go.Scatter(
+        x=[row["Tingkat Dampak"]],
+        y=[row["Kemungkinan"]],
+        mode="markers+text",
+        marker=dict(
+            size=18,
+            color="white",
+            line=dict(color="black", width=2),
+        ),
+        text=[row["Kategori"]],
+        textposition="top center",
+        textfont=dict(color="black", size=10),
+        showlegend=False,
+        hoverinfo="skip",
+    ))
+
+fig.update_layout(
+    height=550,
+    xaxis_title="Tingkat Dampak",
+    yaxis_title="Kemungkinan",
+    margin=dict(l=40, r=40, t=40, b=40),
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+st.divider()
+
+st.info("Fase 4 selesai. Selanjutnya: skenario aktual, target, dan what-if.")
