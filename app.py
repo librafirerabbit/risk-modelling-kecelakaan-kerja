@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import poisson
 import plotly.graph_objects as go
+from html import escape
 
 # =========================================================
 # KONFIGURASI HALAMAN
@@ -13,55 +14,71 @@ st.set_page_config(
 )
 
 # =========================================================
-# CUSTOM CSS — Header Tabel & Banded Row
+# CUSTOM CSS — Tabel HTML
 # =========================================================
 st.markdown("""
 <style>
-/* ---------- st.dataframe ---------- */
-[data-testid="stDataFrame"] thead tr th {
-    background-color: #1f4e79 !important;
-    color: white !important;
-    font-weight: bold !important;
-    text-align: center !important;
-    border: 1px solid #d0d0d0 !important;
+.table-custom {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 8px;
+    margin-bottom: 8px;
 }
-[data-testid="stDataFrame"] tbody tr td {
-    border: 1px solid #e0e0e0 !important;
-    padding: 6px 10px !important;
+.table-custom thead th {
+    background-color: #1f4e79;
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+    padding: 8px 10px;
+    border: 1px solid #d0d0d0;
 }
-[data-testid="stDataFrame"] tbody tr:nth-child(even) {
-    background-color: #f5f9ff !important;
+.table-custom tbody td {
+    padding: 6px 10px;
+    border: 1px solid #e0e0e0;
+    text-align: center;
 }
-[data-testid="stDataFrame"] tbody tr:nth-child(odd) {
-    background-color: #ffffff !important;
+.table-custom tbody tr:nth-child(even) {
+    background-color: #f5f9ff;
 }
-[data-testid="stDataFrame"] tbody tr:hover {
-    background-color: #e6f0ff !important;
+.table-custom tbody tr:nth-child(odd) {
+    background-color: #ffffff;
 }
-
-/* ---------- st.data_editor ---------- */
-[data-testid="stDataEditor"] thead tr th {
-    background-color: #1f4e79 !important;
-    color: white !important;
-    font-weight: bold !important;
-    text-align: center !important;
-    border: 1px solid #d0d0d0 !important;
-}
-[data-testid="stDataEditor"] tbody tr td {
-    border: 1px solid #e0e0e0 !important;
-    padding: 6px 10px !important;
-}
-[data-testid="stDataEditor"] tbody tr:nth-child(even) {
-    background-color: #f5f9ff !important;
-}
-[data-testid="stDataEditor"] tbody tr:nth-child(odd) {
-    background-color: #ffffff !important;
-}
-[data-testid="stDataEditor"] tbody tr:hover {
-    background-color: #e6f0ff !important;
+.table-custom tbody tr:hover {
+    background-color: #e6f0ff;
 }
 </style>
 """, unsafe_allow_html=True)
+
+# =========================================================
+# FUNGSI HELPER — Render tabel HTML statis
+# =========================================================
+def render_tabel(df, kolom=None, judul=None):
+    """
+    Render DataFrame sebagai tabel HTML dengan styling custom.
+    """
+    if kolom is not None:
+        df_tampil = df[kolom].copy()
+    else:
+        df_tampil = df.copy()
+
+    if judul:
+        st.markdown(f"**{judul}**")
+
+    html = '<table class="table-custom"><thead><tr>'
+    for col in df_tampil.columns:
+        html += f'<th>{escape(str(col))}</th>'
+    html += '</tr></thead><tbody>'
+
+    for _, row in df_tampil.iterrows():
+        html += '<tr>'
+        for val in row:
+            html += f'<td>{escape(str(val))}</td>'
+        html += '</tr>'
+
+    html += '</tbody></table>'
+    st.markdown(html, unsafe_allow_html=True)
+
 
 st.title("Risk Modelling Kecelakaan Kerja")
 st.caption("Dashboard pemodelan risiko kecelakaan kerja berbasis Streamlit")
@@ -98,104 +115,46 @@ with tab_panduan:
 
     #### 1. Data Historis Kecelakaan Kerja
     Di bagian ini, kamu melihat tabel data kecelakaan kerja
-    dari tahun ke tahun, dengan kolom:
-
-    - Tahun
-    - Tidak Ada Korban
-    - Luka Ringan
-    - Luka Berat
-    - Cacat Permanen
-    - Fatality
-
-    **Tabel ini bisa diedit langsung.**  
-    Klik angka di dalam sel, ubah sesuai data terbaru, dan
-    perubahan akan langsung dipakai untuk perhitungan di bawahnya.
+    dari tahun ke tahun. Tabel bersifat **read-only**.  
+    Untuk mengedit data, klik tombol **"Edit Data"**.
 
     #### 2. Rata-Rata Kejadian per Tahun (Lambda)
-    Bagian ini menampilkan **nilai Lambda** untuk tiap kategori dampak.
-    Lambda dihitung otomatis dari rata-rata kolom di bagian 1.
-
-    Lambda inilah yang menjadi **dasar distribusi Poisson** di bagian
-    berikutnya.
+    Nilai Lambda dihitung otomatis dari rata-rata kolom di bagian 1.
 
     #### 3. Probabilitas Poisson
-    Di sini, nilai Lambda dikonversi menjadi **probabilitas kejadian**
-    menggunakan distribusi Poisson.
-
-    Probabilitas ini menjawab pertanyaan:
-
-    > "Berapa peluang terjadinya sejumlah kecelakaan dalam satu tahun?"
-
-    Hasilnya ditampilkan dalam tabel dan grafik batang.
+    Lambda dikonversi menjadi **probabilitas kejadian** menggunakan
+    distribusi Poisson.
 
     #### 4. Matriks Risiko 5×5
-    Probabilitas tadi dikonversi menjadi **kategori kemungkinan**:
-
-    - Sangat Jarang Terjadi
-    - Jarang Terjadi
-    - Bisa Terjadi
-    - Sangat Mungkin Terjadi
-    - Hampir Pasti Terjadi
-
-    Lalu dipetakan ke **matriks risiko 5×5** bersama tingkat dampak,
-    menghasilkan:
-
-    - **Level Risiko** (Low, Low to Moderate, Moderate, dst.)
-    - **Skala Risiko** (1–25)
+    Probabilitas dikonversi menjadi **kategori kemungkinan**, lalu
+    dipetakan ke **matriks risiko 5×5** untuk menghasilkan
+    **Level Risiko** dan **Skala Risiko**.
 
     #### 5. Parameter Mitigasi & Skenario
-    Di bagian ini, kamu bisa **mengubah parameter**:
-
-    - Efek Workshop K3
-    - Efek Sertifikasi K3
-    - Efek Pelaksanaan FRA
-    - Kontribusi KRI 1, 2, 3
-    - Nilai What-If Skenario
-
-    Semua parameter di atas **read-write** (bisa diubah).  
-    Setelah diubah, **output otomatis** akan muncul:
-
-    - Faktor Koreksi tiap mitigasi
-    - Total Faktor Mitigasi
-    - Faktor Eskalasi KRI
+    Kamu bisa mengubah parameter mitigasi, KRI, dan what-if.
+    Output otomatis akan muncul di bawahnya.
 
     #### 6. Tiga Skenario Risiko
-    Bagian ini menampilkan **satu tabel gabungan** dengan kolom pembanding:
-
-    - **Actual Risk** → risiko berdasarkan data historis
-    - **Targeted Risk** → risiko setelah mitigasi
-    - **What-If Scenario** → risiko jika skenario tertentu terjadi
-
-    Untuk masing-masing skenario, ditampilkan juga:
-
-    - Probabilitas
-    - Kemungkinan
-    - Level Risiko
-    - Skala Risiko
+    Tabel gabungan yang membandingkan **Actual Risk**,
+    **Targeted Risk**, dan **What-If Scenario**.
 
     #### 7. Heatmap Tiga Skenario
-    Visualisasi akhir: **heatmap matriks risiko 5×5** dengan tiga
-    penanda:
-
+    Visualisasi matriks risiko 5×5 dengan tiga penanda:
     - **K1, K2, ...** → Actual Risk (border hitam)
     - **K1', K2', ...** → Targeted Risk (border biru)
     - **K1", K2", ...** → What-If Scenario (border merah)
 
-    Arahkan kursor ke titik untuk melihat detail.
-
     ---
     """)
 
-    # Legenda Warna Panduan
     st.markdown("### 🎨 Legenda Warna")
-
     st.markdown(
         "Warna heatmap mengikuti **0012.E-2024 Edir Juknis Perencanaan "
         "Manajemen Risiko Terintegrasi**:"
     )
 
     legenda_panduan = """
-    <div style="display:flex; flex-direction:column; gap:0; margin-top:10px; border-collapse:collapse;">
+    <div style="display:flex; flex-direction:column; gap:0; margin-top:10px;">
       <div style="display:flex; align-items:center;">
         <div style="width:120px; height:32px; background:#4CAF50; border:1px solid #ccc;"></div>
         <div style="padding-left:12px; font-style:italic; font-size:15px;">Low</div>
@@ -225,44 +184,25 @@ with tab_panduan:
 
     ### 💡 Tips Penggunaan
 
-    1. **Mulai dari data historis.**  
-       Pastikan data di bagian 1 sudah benar sebelum melihat hasil.
-
-    2. **Perhatikan perubahan Lambda.**  
-       Kalau data historis berubah, Lambda ikut berubah, dan
-       seluruh perhitungan di bawahnya juga berubah.
-
-    3. **Gunakan slider mitigasi.**  
-       Coba ubah nilai mitigasi untuk melihat dampaknya ke
-       Targeted Risk dan What-If Scenario.
-
-    4. **Bandingkan tiga skenario.**  
-       Gunakan tabel di bagian 6 untuk membandingkan posisi risiko
-       aktual, target, dan what-if.
-
-    5. **Hover pada heatmap.**  
-       Untuk melihat detail tiap titik tanpa harus membaca tabel.
+    1. Pastikan data historis sudah benar sebelum melihat hasil.
+    2. Perhatikan perubahan Lambda — memengaruhi semua perhitungan.
+    3. Gunakan slider mitigasi untuk melihat dampaknya ke Targeted Risk.
+    4. Bandingkan tiga skenario di bagian 6.
+    5. Hover pada heatmap untuk melihat detail.
 
     ---
 
     ### 📌 Catatan
 
-    - Aplikasi ini bersifat **semi-kuantitatif**.  
-      Artinya, hasilnya bergantung pada asumsi parameter yang
-      dimasukkan, bukan prediksi presisi tinggi.
-
-    - Data historis yang lebih panjang dan lengkap akan
-      menghasilkan model yang lebih stabil.
-
-    - Aplikasi ini **tidak menggantikan penilaian ahli** (expert
-      judgement) dalam pengambilan keputusan risiko.
+    - Aplikasi ini bersifat **semi-kuantitatif**.
+    - Data historis yang lebih panjang akan menghasilkan model yang lebih stabil.
+    - Aplikasi ini tidak menggantikan penilaian ahli.
 
     ---
 
     ### 🚀 Mulai
 
-    Silakan pindah ke tab **📊 Dashboard** untuk mulai menggunakan
-    aplikasi.
+    Silakan pindah ke tab **📊 Dashboard** untuk mulai menggunakan aplikasi.
     """)
 
 # =========================================================
@@ -286,37 +226,37 @@ with tab_dashboard:
         "Fatality": [2, 1, 0, 0, 0, 0, 0, 0, 0],
     })
 
-    edited_data = st.data_editor(
-        default_data,
-        num_rows="dynamic",
-        use_container_width=True,
-        key="tabel_data_historis",
-        column_config={
-            "Tahun": st.column_config.NumberColumn(
-                "Tahun", help="Tahun kejadian", format="%d", width="small",
-            ),
-            "Tidak Ada Korban": st.column_config.NumberColumn(
-                "Tidak Ada Korban", help="Jumlah kejadian tanpa korban",
-                format="%d", width="small",
-            ),
-            "Luka Ringan": st.column_config.NumberColumn(
-                "Luka Ringan", help="Jumlah kejadian luka ringan",
-                format="%d", width="small",
-            ),
-            "Luka Berat": st.column_config.NumberColumn(
-                "Luka Berat", help="Jumlah kejadian luka berat",
-                format="%d", width="small",
-            ),
-            "Cacat Permanen": st.column_config.NumberColumn(
-                "Cacat Permanen", help="Jumlah kejadian cacat permanen",
-                format="%d", width="small",
-            ),
-            "Fatality": st.column_config.NumberColumn(
-                "Fatality", help="Jumlah kejadian fatality",
-                format="%d", width="small",
-            ),
-        },
-    )
+    # Session state untuk data historis
+    if "data_historis" not in st.session_state:
+        st.session_state["data_historis"] = default_data.copy()
+
+    # Tombol edit
+    if "mode_edit" not in st.session_state:
+        st.session_state["mode_edit"] = False
+
+    col_btn1, col_btn2 = st.columns([1, 5])
+    with col_btn1:
+        if not st.session_state["mode_edit"]:
+            if st.button("✏️ Edit Data"):
+                st.session_state["mode_edit"] = True
+                st.rerun()
+        else:
+            if st.button("✅ Selesai Edit"):
+                st.session_state["mode_edit"] = False
+                st.rerun()
+
+    if st.session_state["mode_edit"]:
+        edited_data = st.data_editor(
+            st.session_state["data_historis"],
+            num_rows="dynamic",
+            use_container_width=True,
+            key="editor_data_historis",
+        )
+        st.session_state["data_historis"] = edited_data
+    else:
+        render_tabel(st.session_state["data_historis"])
+
+    edited_data = st.session_state["data_historis"]
 
     st.divider()
 
@@ -331,16 +271,15 @@ with tab_dashboard:
             "Cacat Permanen", "Fatality",
         ],
         "Lambda": [
-            edited_data["Tidak Ada Korban"].mean(),
-            edited_data["Luka Ringan"].mean(),
-            edited_data["Luka Berat"].mean(),
-            edited_data["Cacat Permanen"].mean(),
-            edited_data["Fatality"].mean(),
+            round(edited_data["Tidak Ada Korban"].mean(), 4),
+            round(edited_data["Luka Ringan"].mean(), 4),
+            round(edited_data["Luka Berat"].mean(), 4),
+            round(edited_data["Cacat Permanen"].mean(), 4),
+            round(edited_data["Fatality"].mean(), 4),
         ],
     })
-    lambda_df["Lambda"] = lambda_df["Lambda"].round(4)
 
-    st.dataframe(lambda_df, use_container_width=True, hide_index=True)
+    render_tabel(lambda_df)
     st.divider()
 
     # =========================================================
@@ -364,15 +303,11 @@ with tab_dashboard:
         return poisson.cdf(atas, lam) - poisson.cdf(bawah - 1, lam)
 
     prob_df["Probabilitas"] = prob_df.apply(
-        lambda r: hitung_probabilitas(r["Lambda"], r["Dampak Atas"], r["Dampak Bawah"]),
+        lambda r: round(hitung_probabilitas(r["Lambda"], r["Dampak Atas"], r["Dampak Bawah"]), 4),
         axis=1
     )
-    prob_df["Probabilitas"] = prob_df["Probabilitas"].round(4)
 
-    st.dataframe(
-        prob_df[["Kode", "Kategori", "Lambda", "Probabilitas"]],
-        use_container_width=True, hide_index=True
-    )
+    render_tabel(prob_df, kolom=["Kode", "Kategori", "Lambda", "Probabilitas"])
 
     st.bar_chart(prob_df.set_index("Kategori")["Probabilitas"], use_container_width=True)
     st.divider()
@@ -428,14 +363,11 @@ with tab_dashboard:
         lambda r: skala_risiko(r["Kemungkinan"], r["Tingkat Dampak"]), axis=1
     )
 
-    st.dataframe(
-        prob_df[[
-            "Kode", "Kategori", "Tingkat Dampak",
-            "Probabilitas", "Kemungkinan",
-            "Level Risiko", "Skala Risiko"
-        ]],
-        use_container_width=True, hide_index=True
-    )
+    render_tabel(prob_df, kolom=[
+        "Kode", "Kategori", "Tingkat Dampak",
+        "Probabilitas", "Kemungkinan",
+        "Level Risiko", "Skala Risiko"
+    ])
     st.divider()
 
     # =========================================================
@@ -514,7 +446,7 @@ with tab_dashboard:
         ],
     })
 
-    st.dataframe(output_df, use_container_width=True, hide_index=True)
+    render_tabel(output_df)
     st.divider()
 
     # =========================================================
@@ -561,15 +493,13 @@ with tab_dashboard:
             lambda r: skala_risiko(r[kem_col], r["Tingkat Dampak"]), axis=1
         )
 
-    tabel_gabungan = skenario_df[[
+    render_tabel(skenario_df, kolom=[
         "Kode", "Kategori", "Tingkat Dampak", "Lambda",
         "Actual Risk", "Targeted Risk", "What-If Scenario",
         "Kemungkinan Actual Risk", "Level Actual Risk", "Skala Actual Risk",
         "Kemungkinan Targeted Risk", "Level Targeted Risk", "Skala Targeted Risk",
         "Kemungkinan What-If Scenario", "Level What-If Scenario", "Skala What-If Scenario",
-    ]]
-
-    st.dataframe(tabel_gabungan, use_container_width=True, hide_index=True)
+    ])
     st.divider()
 
     # =========================================================
