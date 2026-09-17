@@ -159,11 +159,162 @@ st.dataframe(
 st.divider()
 
 # =========================================================
-# FASE 4 — HEATMAP (VERSI FINAL)
+# FASE 5 — INPUT MANUAL & OUTPUT OTOMATIS
 # =========================================================
-st.header("5. Heatmap Matriks Risiko")
+st.header("5. Parameter Mitigasi & Skenario")
 
-# Label sumbu — SATU SET SAJA, dipakai heatmap & scatter
+col_in1, col_in2 = st.columns(2)
+
+with col_in1:
+    st.subheader("Input Mitigasi")
+    efek_workshop = st.number_input(
+        "Efek Workshop K3", min_value=0.0, max_value=1.0,
+        value=0.2, step=0.01, key="efek_workshop"
+    )
+    efek_sertifikasi = st.number_input(
+        "Efek Sertifikasi K3", min_value=0.0, max_value=1.0,
+        value=0.2, step=0.01, key="efek_sertifikasi"
+    )
+    efek_fra = st.number_input(
+        "Efek Pelaksanaan FRA", min_value=0.0, max_value=1.0,
+        value=0.2, step=0.01, key="efek_fra"
+    )
+
+with col_in2:
+    st.subheader("Input KRI & What-If")
+    kri1 = st.number_input(
+        "Kontribusi KRI 1 (Patrol K3)", min_value=0.0, max_value=1.0,
+        value=0.02, step=0.01, key="kri1"
+    )
+    kri2 = st.number_input(
+        "Kontribusi KRI 2 (FPS Unit)", min_value=0.0, max_value=1.0,
+        value=0.04, step=0.01, key="kri2"
+    )
+    kri3 = st.number_input(
+        "Kontribusi KRI 3 (Leadership)", min_value=0.0, max_value=1.0,
+        value=0.02, step=0.01, key="kri3"
+    )
+    what_if_nilai = st.number_input(
+        "Nilai What If Skenario", min_value=0.0,
+        value=5.0, step=0.5, key="what_if"
+    )
+
+# --- Output otomatis ---
+st.subheader("Output Otomatis")
+
+faktor_kri1 = 1 + kri1
+faktor_kri2 = 1 + kri2
+faktor_kri3 = 1 + kri3
+faktor_eskalasi = faktor_kri1 * faktor_kri2 * faktor_kri3
+
+faktor_koreksi_workshop = 1 - efek_workshop
+faktor_koreksi_sertifikasi = 1 - efek_sertifikasi
+faktor_koreksi_fra = 1 - efek_fra
+total_faktor_mitigasi = (
+    faktor_koreksi_workshop *
+    faktor_koreksi_sertifikasi *
+    faktor_koreksi_fra
+)
+
+output_df = pd.DataFrame({
+    "Parameter": [
+        "Faktor KRI 1", "Faktor KRI 2", "Faktor KRI 3",
+        "Faktor Eskalasi KRI",
+        "Faktor Koreksi Workshop", "Faktor Koreksi Sertifikasi",
+        "Faktor Koreksi FRA", "Total Faktor Mitigasi",
+    ],
+    "Nilai": [
+        round(faktor_kri1, 4),
+        round(faktor_kri2, 4),
+        round(faktor_kri3, 4),
+        round(faktor_eskalasi, 4),
+        round(faktor_koreksi_workshop, 4),
+        round(faktor_koreksi_sertifikasi, 4),
+        round(faktor_koreksi_fra, 4),
+        round(total_faktor_mitigasi, 4),
+    ],
+})
+
+st.dataframe(output_df, use_container_width=True, hide_index=True)
+
+st.divider()
+
+# =========================================================
+# FASE 5B — TIGA SKENARIO
+# =========================================================
+st.header("6. Tiga Skenario Risiko")
+
+skenario_df = prob_df.copy()
+
+# Actual Risk = Lambda × Faktor Eskalasi KRI
+skenario_df["Actual Risk"] = (
+    skenario_df["Lambda"] * faktor_eskalasi
+).round(4)
+
+# Targeted Risk = Actual Risk × Total Faktor Mitigasi
+skenario_df["Targeted Risk"] = (
+    skenario_df["Actual Risk"] * total_faktor_mitigasi
+).round(4)
+
+# What-If = Targeted Risk + Nilai What If
+skenario_df["What-If Scenario"] = (
+    skenario_df["Targeted Risk"] + what_if_nilai
+).round(4)
+
+# Hitung ulang probabilitas, kemungkinan, level, skala untuk tiap skenario
+def evaluasi_risiko(nilai_lambda):
+    if nilai_lambda <= 0:
+        p = 0.0
+    else:
+        # Pakai konfigurasi dampak atas & bawah per kategori
+        p = poisson.cdf(5, nilai_lambda) - poisson.cdf(0, nilai_lambda)
+    kemungkinan = kategori_kemungkinan(p)
+    return p, kemungkinan
+
+# Kita hitung per baris (agar tetap sesuai konfigurasi masing-masing)
+def hitung_prob_per_baris(lam, atas, bawah):
+    if lam <= 0:
+        return 0.0
+    return poisson.cdf(atas, lam) - poisson.cdf(bawah - 1, lam)
+
+for skenario in ["Actual Risk", "Targeted Risk", "What-If Scenario"]:
+    prob_col = f"Prob {skenario}"
+    kem_col = f"Kemungkinan {skenario}"
+    lvl_col = f"Level {skenario}"
+    skala_col = f"Skala {skenario}"
+
+    skenario_df[prob_col] = skenario_df.apply(
+        lambda r: round(hitung_prob_per_baris(
+            r[skenario], r["Dampak Atas"], r["Dampak Bawah"]
+        ), 4),
+        axis=1
+    )
+    skenario_df[kem_col] = skenario_df[prob_col].apply(kategori_kemungkinan)
+    skenario_df[lvl_col] = skenario_df.apply(
+        lambda r: level_risiko(r[kem_col], r["Tingkat Dampak"]), axis=1
+    )
+    skenario_df[skala_col] = skenario_df.apply(
+        lambda r: skala_risiko(r[kem_col], r["Tingkat Dampak"]), axis=1
+    )
+
+# Tabel gabungan dengan kolom pembanding
+tabel_gabungan = skenario_df[[
+    "Kode", "Kategori", "Tingkat Dampak", "Lambda",
+    "Actual Risk", "Targeted Risk", "What-If Scenario",
+    "Kemungkinan Actual Risk", "Level Actual Risk", "Skala Actual Risk",
+    "Kemungkinan Targeted Risk", "Level Targeted Risk", "Skala Targeted Risk",
+    "Kemungkinan What-If Scenario", "Level What-If Scenario", "Skala What-If Scenario",
+]]
+
+st.dataframe(tabel_gabungan, use_container_width=True, hide_index=True)
+
+st.divider()
+
+# =========================================================
+# FASE 5C — HEATMAP TIGA SKENARIO
+# =========================================================
+st.header("7. Heatmap Tiga Skenario")
+
 label_dampak = [
     "1 Sangat Rendah", "2 Rendah", "3 Moderat", "4 Tinggi", "5 Sangat Tinggi"
 ]
@@ -172,7 +323,6 @@ label_kemungkinan = [
     "D - Sangat Mungkin", "E - Hampir Pasti",
 ]
 
-# Mapping dari nama kategori ke label sumbu
 map_dampak = dict(zip(urutan_dampak, label_dampak))
 map_kemungkinan = dict(zip(urutan_kemungkinan, label_kemungkinan))
 
@@ -188,7 +338,6 @@ colorscale = [
 
 fig = go.Figure()
 
-# Heatmap
 fig.add_trace(go.Heatmap(
     z=matriks_skala,
     x=label_dampak,
@@ -203,26 +352,34 @@ fig.add_trace(go.Heatmap(
     xgap=2, ygap=2,
 ))
 
-# Scatter — pakai label yang SAMA dengan heatmap
-for _, row in prob_df.iterrows():
-    fig.add_trace(go.Scatter(
-        x=[map_dampak[row["Tingkat Dampak"]]],
-        y=[map_kemungkinan[row["Kemungkinan"]]],
-        mode="markers+text",
-        marker=dict(size=30, color="white",
-                    line=dict(color="black", width=2)),
-        text=[row["Kode"]],
-        textposition="middle center",
-        textfont=dict(color="black", size=11),
-        showlegend=False,
-        hovertemplate=(
-            f"<b>{row['Kode']} - {row['Kategori']}</b><br>"
-            f"Kemungkinan: {row['Kemungkinan']}<br>"
-            f"Dampak: {row['Tingkat Dampak']}<br>"
-            f"Skala: {row['Skala Risiko']}<br>"
-            f"Level: {row['Level Risiko']}<extra></extra>"
-        ),
-    ))
+# Fungsi tambah scatter
+def tambah_scatter(df, kolom_kemungkinan, kolom_skala, suffix, border_color):
+    for _, row in df.iterrows():
+        fig.add_trace(go.Scatter(
+            x=[map_dampak[row["Tingkat Dampak"]]],
+            y=[map_kemungkinan[row[kolom_kemungkinan]]],
+            mode="markers+text",
+            marker=dict(
+                size=30,
+                color="white",
+                line=dict(color=border_color, width=2),
+            ),
+            text=[f"{row['Kode']}{suffix}"],
+            textposition="middle center",
+            textfont=dict(color="black", size=10),
+            showlegend=False,
+            hovertemplate=(
+                f"<b>{row['Kode']}{suffix} - {row['Kategori']}</b><br>"
+                f"Kemungkinan: {row[kolom_kemungkinan]}<br>"
+                f"Dampak: {row['Tingkat Dampak']}<br>"
+                f"Skala: {row[kolom_skala]}<extra></extra>"
+            ),
+        ))
+
+# Aktual (hitam), Target (biru), What-If (merah)
+tambah_scatter(skenario_df, "Kemungkinan Actual Risk", "Skala Actual Risk", "", "black")
+tambah_scatter(skenario_df, "Kemungkinan Targeted Risk", "Skala Targeted Risk", "'", "blue")
+tambah_scatter(skenario_df, "Kemungkinan What-If Scenario", "Skala What-If Scenario", '"', "red")
 
 fig.update_layout(
     height=500,
@@ -246,6 +403,14 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
+# Legenda penanda
+st.markdown("**Keterangan Penanda Skenario**")
+st.markdown("""
+- **K1, K2, K3, K4, K5** → Actual Risk (border hitam)
+- **K1', K2', K3', K4', K5'** → Targeted Risk (border biru)
+- **K1", K2", K3", K4", K5"** → What-If Scenario (border merah)
+""")
+
 # Legenda warna
 st.markdown("**Legenda Warna (0012.E-2024 Edir Juknis Perencanaan Manajemen Risiko Terintegrasi)**")
 legenda_html = """
@@ -259,11 +424,5 @@ legenda_html = """
 """
 st.markdown(legenda_html, unsafe_allow_html=True)
 
-st.markdown("**Keterangan Kode Kategori**")
-st.dataframe(
-    prob_df[["Kode", "Kategori", "Tingkat Dampak", "Kemungkinan", "Level Risiko", "Skala Risiko"]],
-    use_container_width=True, hide_index=True
-)
-
 st.divider()
-st.info("Fase 4 selesai. Selanjutnya: skenario aktual, target, dan what-if.")
+st.info("Fase 5 selesai. Selanjutnya: validasi dan rekomendasi otomatis.")
