@@ -84,8 +84,7 @@ st.header("3. Probabilitas Poisson")
 
 st.write(
     "Probabilitas dihitung menggunakan distribusi Poisson "
-    "berdasarkan nilai Lambda tiap kategori dampak. "
-    "Dampak Atas dan Dampak Bawah mengikuti konfigurasi di Excel."
+    "berdasarkan nilai Lambda tiap kategori dampak."
 )
 
 konfigurasi = pd.DataFrame({
@@ -95,6 +94,13 @@ konfigurasi = pd.DataFrame({
         "Luka Berat",
         "Cacat Permanen",
         "Fatality",
+    ],
+    "Tingkat Dampak": [
+        "Sangat Rendah",
+        "Rendah",
+        "Moderat",
+        "Tinggi",
+        "Sangat Tinggi",
     ],
     "Dampak Atas": [5, 5, 5, 5, 2],
     "Dampak Bawah": [1, 1, 1, 1, 1],
@@ -124,9 +130,6 @@ st.dataframe(
 
 st.divider()
 
-# =========================================================
-# GRAFIK PROBABILITAS
-# =========================================================
 st.subheader("Grafik Probabilitas per Kategori")
 
 st.bar_chart(
@@ -136,4 +139,104 @@ st.bar_chart(
 
 st.divider()
 
-st.info("Fase 2 selesai. Selanjutnya: matriks risiko 5x5.")
+# =========================================================
+# FASE 3 — MATRIKS RISIKO 5x5
+# =========================================================
+st.header("4. Matriks Risiko 5x5")
+
+st.write(
+    "Probabilitas dikonversi menjadi kategori kemungkinan, "
+    "lalu dipetakan ke matriks risiko 5x5 untuk mendapatkan "
+    "level risiko dan skala risiko."
+)
+
+# --- Fungsi kategori kemungkinan ---
+def kategori_kemungkinan(p):
+    if p < 0.2:
+        return "Sangat Jarang Terjadi"
+    elif p < 0.4:
+        return "Jarang Terjadi"
+    elif p < 0.6:
+        return "Bisa Terjadi"
+    elif p < 0.8:
+        return "Sangat Mungkin Terjadi"
+    else:
+        return "Hampir Pasti Terjadi"
+
+prob_df["Kemungkinan"] = prob_df["Probabilitas"].apply(kategori_kemungkinan)
+
+# --- Matriks level risiko (sesuai Excel) ---
+# Baris: kemungkinan, Kolom: tingkat dampak
+# Urutan kemungkinan: Sangat Jarang, Jarang, Bisa, Sangat Mungkin, Hampir Pasti
+# Urutan dampak: Sangat Rendah, Rendah, Moderat, Tinggi, Sangat Tinggi
+matriks_level = [
+    ["Low", "Low", "Low to Moderate", "Moderate", "High"],
+    ["Low", "Low to Moderate", "Low to Moderate", "Moderate to High", "High"],
+    ["Low", "Low to Moderate", "Moderate", "Moderate to High", "High"],
+    ["Low", "Low to Moderate", "Moderate", "Moderate to High", "High"],
+    ["Low to Moderate", "Moderate", "Moderate to High", "High", "High"],
+]
+
+# --- Matriks skala risiko (sesuai Excel) ---
+matriks_skala = [
+    [1, 5, 10, 15, 20],
+    [2, 6, 11, 16, 21],
+    [3, 8, 13, 18, 23],
+    [4, 9, 14, 19, 24],
+    [7, 12, 17, 22, 25],
+]
+
+urutan_kemungkinan = [
+    "Sangat Jarang Terjadi",
+    "Jarang Terjadi",
+    "Bisa Terjadi",
+    "Sangat Mungkin Terjadi",
+    "Hampir Pasti Terjadi",
+]
+
+urutan_dampak = [
+    "Sangat Rendah",
+    "Rendah",
+    "Moderat",
+    "Tinggi",
+    "Sangat Tinggi",
+]
+
+def level_risiko(kemungkinan, dampak):
+    i = urutan_kemungkinan.index(kemungkinan)
+    j = urutan_dampak.index(dampak)
+    return matriks_level[i][j]
+
+def skala_risiko(kemungkinan, dampak):
+    i = urutan_kemungkinan.index(kemungkinan)
+    j = urutan_dampak.index(dampak)
+    return matriks_skala[i][j]
+
+prob_df["Level Risiko"] = prob_df.apply(
+    lambda row: level_risiko(row["Kemungkinan"], row["Tingkat Dampak"]),
+    axis=1
+)
+
+prob_df["Skala Risiko"] = prob_df.apply(
+    lambda row: skala_risiko(row["Kemungkinan"], row["Tingkat Dampak"]),
+    axis=1
+)
+
+st.subheader("Hasil Pemetaan Risiko Aktual")
+
+st.dataframe(
+    prob_df[[
+        "Kategori",
+        "Tingkat Dampak",
+        "Probabilitas",
+        "Kemungkinan",
+        "Level Risiko",
+        "Skala Risiko",
+    ]],
+    use_container_width=True,
+    hide_index=True
+)
+
+st.divider()
+
+st.info("Fase 3 selesai. Selanjutnya: visualisasi matriks risiko.")
