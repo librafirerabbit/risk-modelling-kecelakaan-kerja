@@ -147,11 +147,11 @@ with tab_panduan:
         <div style="padding-left:12px; font-style:italic; font-size:15px;">Moderate</div>
       </div>
       <div style="display:flex; align-items:center;">
-        <div style="width:120px; height:32px; background:#FFC000; border:1px solid #ccc;"></div>
+        <div style="width:120px; height:32px; background:#ED7D31; border:1px solid #ccc;"></div>
         <div style="padding-left:12px; font-style:italic; font-size:15px;">Moderate to High</div>
       </div>
       <div style="display:flex; align-items:center;">
-        <div style="width:120px; height:32px; background:#ED7D31; border:1px solid #ccc;"></div>
+        <div style="width:120px; height:32px; background:#E53935; border:1px solid #ccc;"></div>
         <div style="padding-left:12px; font-style:italic; font-size:15px;">High</div>
       </div>
     </div>
@@ -476,7 +476,6 @@ with tab_dashboard:
     # =========================================================
     st.header("7. Heatmap Tiga Skenario")
 
-    # Label sumbu X (dampak) — dari kiri ke kanan: 1, 2, 3, 4, 5
     label_dampak = [
         "1 Sangat Rendah",
         "2 Rendah",
@@ -485,8 +484,6 @@ with tab_dashboard:
         "5 Sangat Tinggi",
     ]
 
-    # Label sumbu Y (kemungkinan) — dari BAWAH ke ATAS: A, B, C, D, E
-    # Plotly menaruh elemen pertama di bawah, jadi urutannya A dulu
     label_kemungkinan = [
         "A - Sangat Jarang",
         "B - Jarang",
@@ -498,7 +495,6 @@ with tab_dashboard:
     map_dampak = dict(zip(urutan_dampak, label_dampak))
     map_kemungkinan = dict(zip(urutan_kemungkinan, label_kemungkinan))
 
-    # Teks dalam kotak: skala + level risiko
     text_values = []
     for i in range(5):
         baris = []
@@ -506,19 +502,17 @@ with tab_dashboard:
             baris.append(f"{matriks_skala[i][j]}<br>{matriks_level[i][j]}")
         text_values.append(baris)
 
+    # Warna diskrit: Low, Low to Moderate, Moderate, Moderate to High, High (MERAH)
     colorscale = [
-        [0.00, "#4CAF50"], [0.20, "#4CAF50"],
-        [0.20, "#A5D6A7"], [0.40, "#A5D6A7"],
-        [0.40, "#FFFF00"], [0.60, "#FFFF00"],
-        [0.60, "#FFC000"], [0.76, "#FFC000"],
-        [0.76, "#ED7D31"], [1.00, "#ED7D31"],
+        [0.00, "#4CAF50"], [0.20, "#4CAF50"],   # 1-5 Low
+        [0.20, "#A5D6A7"], [0.40, "#A5D6A7"],   # 6-10 Low to Moderate
+        [0.40, "#FFFF00"], [0.60, "#FFFF00"],   # 11-15 Moderate
+        [0.60, "#ED7D31"], [0.76, "#ED7D31"],   # 16-19 Moderate to High
+        [0.76, "#E53935"], [1.00, "#E53935"],   # 20-25 High (MERAH)
     ]
 
     fig = go.Figure()
 
-    # Heatmap
-    # PENTING: matriks_skala[0] adalah baris Sangat Jarang (A).
-    # Plotly menaruh baris pertama di bawah, jadi tidak perlu reversed.
     fig.add_trace(go.Heatmap(
         z=matriks_skala,
         x=label_dampak,
@@ -576,8 +570,6 @@ with tab_dashboard:
             tickfont=dict(size=11),
             categoryorder="array",
             categoryarray=label_kemungkinan,
-            # TIDAK pakai autorange="reversed"
-            # Karena kita ingin A di bawah, E di atas.
         ),
     )
 
@@ -607,11 +599,11 @@ with tab_dashboard:
         <div style="padding-left:12px; font-style:italic; font-size:15px;">Moderate</div>
       </div>
       <div style="display:flex; align-items:center;">
-        <div style="width:120px; height:32px; background:#FFC000; border:1px solid #ccc;"></div>
+        <div style="width:120px; height:32px; background:#ED7D31; border:1px solid #ccc;"></div>
         <div style="padding-left:12px; font-style:italic; font-size:15px;">Moderate to High</div>
       </div>
       <div style="display:flex; align-items:center;">
-        <div style="width:120px; height:32px; background:#ED7D31; border:1px solid #ccc;"></div>
+        <div style="width:120px; height:32px; background:#E53935; border:1px solid #ccc;"></div>
         <div style="padding-left:12px; font-style:italic; font-size:15px;">High</div>
       </div>
     </div>
