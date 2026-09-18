@@ -476,25 +476,20 @@ with tab_dashboard:
     # =========================================================
     st.header("7. Heatmap Tiga Skenario")
 
-    label_dampak = [
-        "1 Sangat Rendah",
-        "2 Rendah",
-        "3 Moderat",
-        "4 Tinggi",
-        "5 Sangat Tinggi",
+    # Mapping kategori ke index numerik
+    idx_dampak = {d: i for i, d in enumerate(urutan_dampak)}          # 0-4
+    idx_kemungkinan = {k: i for i, k in enumerate(urutan_kemungkinan)}  # 0-4
+
+    # Label untuk tick
+    tick_dampak = [
+        "1 Sangat Rendah", "2 Rendah", "3 Moderat", "4 Tinggi", "5 Sangat Tinggi"
+    ]
+    tick_kemungkinan = [
+        "A - Sangat Jarang", "B - Jarang", "C - Bisa",
+        "D - Sangat Mungkin", "E - Hampir Pasti",
     ]
 
-    label_kemungkinan = [
-        "A - Sangat Jarang",
-        "B - Jarang",
-        "C - Bisa",
-        "D - Sangat Mungkin",
-        "E - Hampir Pasti",
-    ]
-
-    map_dampak = dict(zip(urutan_dampak, label_dampak))
-    map_kemungkinan = dict(zip(urutan_kemungkinan, label_kemungkinan))
-
+    # Teks kotak: skala + level risiko
     text_values = []
     for i in range(5):
         baris = []
@@ -502,21 +497,21 @@ with tab_dashboard:
             baris.append(f"{matriks_skala[i][j]}<br>{matriks_level[i][j]}")
         text_values.append(baris)
 
-    # Warna diskrit: Low, Low to Moderate, Moderate, Moderate to High, High (MERAH)
     colorscale = [
-        [0.00, "#4CAF50"], [0.20, "#4CAF50"],   # 1-5 Low
-        [0.20, "#A5D6A7"], [0.40, "#A5D6A7"],   # 6-10 Low to Moderate
-        [0.40, "#FFFF00"], [0.60, "#FFFF00"],   # 11-15 Moderate
-        [0.60, "#ED7D31"], [0.76, "#ED7D31"],   # 16-19 Moderate to High
-        [0.76, "#E53935"], [1.00, "#E53935"],   # 20-25 High (MERAH)
+        [0.00, "#4CAF50"], [0.20, "#4CAF50"],
+        [0.20, "#A5D6A7"], [0.40, "#A5D6A7"],
+        [0.40, "#FFFF00"], [0.60, "#FFFF00"],
+        [0.60, "#ED7D31"], [0.76, "#ED7D31"],
+        [0.76, "#E53935"], [1.00, "#E53935"],
     ]
 
     fig = go.Figure()
 
+    # Heatmap pakai koordinat numerik
     fig.add_trace(go.Heatmap(
         z=matriks_skala,
-        x=label_dampak,
-        y=label_kemungkinan,
+        x=list(range(5)),   # 0,1,2,3,4
+        y=list(range(5)),   # 0,1,2,3,4
         text=text_values,
         texttemplate="%{text}",
         textfont={"size": 11, "color": "black"},
@@ -527,14 +522,20 @@ with tab_dashboard:
         xgap=2, ygap=2,
     ))
 
+    # Offset titik ke sudut kanan atas
+    OFFSET_X = 0.28
+    OFFSET_Y = 0.28
+
     def tambah_scatter(df, kolom_kemungkinan, kolom_skala, suffix, border_color):
         for _, row in df.iterrows():
+            x_pos = idx_dampak[row["Tingkat Dampak"]] + OFFSET_X
+            y_pos = idx_kemungkinan[row[kolom_kemungkinan]] + OFFSET_Y
             fig.add_trace(go.Scatter(
-                x=[map_dampak[row["Tingkat Dampak"]]],
-                y=[map_kemungkinan[row[kolom_kemungkinan]]],
+                x=[x_pos],
+                y=[y_pos],
                 mode="markers+text",
                 marker=dict(
-                    size=30,
+                    size=22,
                     color="white",
                     line=dict(color=border_color, width=2),
                 ),
@@ -562,14 +563,18 @@ with tab_dashboard:
         plot_bgcolor="white",
         xaxis=dict(
             side="bottom",
+            tickmode="array",
+            tickvals=list(range(5)),
+            ticktext=tick_dampak,
             tickfont=dict(size=11),
-            categoryorder="array",
-            categoryarray=label_dampak,
+            range=[-0.5, 4.5],
         ),
         yaxis=dict(
+            tickmode="array",
+            tickvals=list(range(5)),
+            ticktext=tick_kemungkinan,
             tickfont=dict(size=11),
-            categoryorder="array",
-            categoryarray=label_kemungkinan,
+            range=[-0.5, 4.5],
         ),
     )
 
