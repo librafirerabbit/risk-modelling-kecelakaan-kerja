@@ -54,9 +54,6 @@ st.markdown("""
 # FUNGSI HELPER — Render tabel HTML statis
 # =========================================================
 def render_tabel(df, kolom=None, judul=None):
-    """
-    Render DataFrame sebagai tabel HTML dengan styling custom.
-    """
     if kolom is not None:
         df_tampil = df[kolom].copy()
     else:
@@ -98,51 +95,33 @@ with tab_panduan:
     Selamat datang di **Dashboard Risk Modelling Kecelakaan Kerja**.
 
     Aplikasi ini digunakan untuk memodelkan risiko kecelakaan kerja
-    berdasarkan data historis, dengan pendekatan **semi-kuantitatif**
-    yang menggabungkan:
-
-    - Distribusi **Poisson** untuk menghitung probabilitas kejadian.
-    - **Matriks Risiko 5×5** untuk menentukan level risiko.
-    - **Faktor Koreksi KRI** dan **Mitigasi** untuk menyesuaikan risiko.
-    - **Tiga skenario** perbandingan: Aktual, Target, dan What-If.
+    berdasarkan data historis, dengan pendekatan **semi-kuantitatif**.
 
     ---
 
     ### 🧭 Alur Penggunaan
 
-    Aplikasi ini terdiri dari **7 bagian utama** di tab **Dashboard**.
-    Ikuti urutannya dari atas ke bawah.
-
     #### 1. Data Historis Kecelakaan Kerja
-    Di bagian ini, kamu melihat tabel data kecelakaan kerja
-    dari tahun ke tahun. Tabel bersifat **read-only**.  
-    Untuk mengedit data, klik tombol **"Edit Data"**.
+    Tabel bersifat **read-only**. Untuk mengedit, klik tombol **"Edit Data"**.
 
     #### 2. Rata-Rata Kejadian per Tahun (Lambda)
-    Nilai Lambda dihitung otomatis dari rata-rata kolom di bagian 1.
+    Dihitung otomatis dari data historis.
 
     #### 3. Probabilitas Poisson
-    Lambda dikonversi menjadi **probabilitas kejadian** menggunakan
-    distribusi Poisson.
+    Lambda dikonversi menjadi probabilitas kejadian.
 
     #### 4. Matriks Risiko 5×5
-    Probabilitas dikonversi menjadi **kategori kemungkinan**, lalu
-    dipetakan ke **matriks risiko 5×5** untuk menghasilkan
-    **Level Risiko** dan **Skala Risiko**.
+    Probabilitas dipetakan ke matriks untuk menghasilkan
+    Level Risiko dan Skala Risiko.
 
     #### 5. Parameter Mitigasi & Skenario
-    Kamu bisa mengubah parameter mitigasi, KRI, dan what-if.
-    Output otomatis akan muncul di bawahnya.
+    Ubah parameter mitigasi, KRI, dan what-if.
 
     #### 6. Tiga Skenario Risiko
-    Tabel gabungan yang membandingkan **Actual Risk**,
-    **Targeted Risk**, dan **What-If Scenario**.
+    Perbandingan Actual Risk, Targeted Risk, dan What-If Scenario.
 
     #### 7. Heatmap Tiga Skenario
-    Visualisasi matriks risiko 5×5 dengan tiga penanda:
-    - **K1, K2, ...** → Actual Risk (border hitam)
-    - **K1', K2', ...** → Targeted Risk (border biru)
-    - **K1", K2", ...** → What-If Scenario (border merah)
+    Visualisasi matriks risiko 5×5 dengan tiga penanda.
 
     ---
     """)
@@ -183,26 +162,18 @@ with tab_panduan:
     ---
 
     ### 💡 Tips Penggunaan
-
-    1. Pastikan data historis sudah benar sebelum melihat hasil.
-    2. Perhatikan perubahan Lambda — memengaruhi semua perhitungan.
-    3. Gunakan slider mitigasi untuk melihat dampaknya ke Targeted Risk.
-    4. Bandingkan tiga skenario di bagian 6.
-    5. Hover pada heatmap untuk melihat detail.
-
-    ---
+    1. Pastikan data historis sudah benar.
+    2. Perhatikan perubahan Lambda.
+    3. Gunakan slider mitigasi.
+    4. Bandingkan tiga skenario.
+    5. Hover pada heatmap untuk detail.
 
     ### 📌 Catatan
-
-    - Aplikasi ini bersifat **semi-kuantitatif**.
-    - Data historis yang lebih panjang akan menghasilkan model yang lebih stabil.
-    - Aplikasi ini tidak menggantikan penilaian ahli.
-
-    ---
+    - Bersifat **semi-kuantitatif**.
+    - Tidak menggantikan penilaian ahli.
 
     ### 🚀 Mulai
-
-    Silakan pindah ke tab **📊 Dashboard** untuk mulai menggunakan aplikasi.
+    Silakan pindah ke tab **📊 Dashboard**.
     """)
 
 # =========================================================
@@ -226,11 +197,9 @@ with tab_dashboard:
         "Fatality": [2, 1, 0, 0, 0, 0, 0, 0, 0],
     })
 
-    # Session state untuk data historis
     if "data_historis" not in st.session_state:
         st.session_state["data_historis"] = default_data.copy()
 
-    # Tombol edit
     if "mode_edit" not in st.session_state:
         st.session_state["mode_edit"] = False
 
@@ -507,18 +476,35 @@ with tab_dashboard:
     # =========================================================
     st.header("7. Heatmap Tiga Skenario")
 
+    # Label sumbu X (dampak) — dari kiri ke kanan: 1, 2, 3, 4, 5
     label_dampak = [
-        "1 Sangat Rendah", "2 Rendah", "3 Moderat", "4 Tinggi", "5 Sangat Tinggi"
+        "1 Sangat Rendah",
+        "2 Rendah",
+        "3 Moderat",
+        "4 Tinggi",
+        "5 Sangat Tinggi",
     ]
+
+    # Label sumbu Y (kemungkinan) — dari BAWAH ke ATAS: A, B, C, D, E
+    # Plotly menaruh elemen pertama di bawah, jadi urutannya A dulu
     label_kemungkinan = [
-        "A - Sangat Jarang", "B - Jarang", "C - Bisa",
-        "D - Sangat Mungkin", "E - Hampir Pasti",
+        "A - Sangat Jarang",
+        "B - Jarang",
+        "C - Bisa",
+        "D - Sangat Mungkin",
+        "E - Hampir Pasti",
     ]
 
     map_dampak = dict(zip(urutan_dampak, label_dampak))
     map_kemungkinan = dict(zip(urutan_kemungkinan, label_kemungkinan))
 
-    text_values = [[str(matriks_skala[i][j]) for j in range(5)] for i in range(5)]
+    # Teks dalam kotak: skala + level risiko
+    text_values = []
+    for i in range(5):
+        baris = []
+        for j in range(5):
+            baris.append(f"{matriks_skala[i][j]}<br>{matriks_level[i][j]}")
+        text_values.append(baris)
 
     colorscale = [
         [0.00, "#4CAF50"], [0.20, "#4CAF50"],
@@ -530,13 +516,16 @@ with tab_dashboard:
 
     fig = go.Figure()
 
+    # Heatmap
+    # PENTING: matriks_skala[0] adalah baris Sangat Jarang (A).
+    # Plotly menaruh baris pertama di bawah, jadi tidak perlu reversed.
     fig.add_trace(go.Heatmap(
         z=matriks_skala,
         x=label_dampak,
         y=label_kemungkinan,
         text=text_values,
         texttemplate="%{text}",
-        textfont={"size": 13, "color": "black"},
+        textfont={"size": 11, "color": "black"},
         colorscale=colorscale,
         zmin=1, zmax=25,
         showscale=False,
@@ -557,7 +546,7 @@ with tab_dashboard:
                 ),
                 text=[f"{row['Kode']}{suffix}"],
                 textposition="middle center",
-                textfont=dict(color="black", size=10),
+                textfont=dict(color="black", size=9),
                 showlegend=False,
                 hovertemplate=(
                     f"<b>{row['Kode']}{suffix} - {row['Kategori']}</b><br>"
@@ -572,10 +561,10 @@ with tab_dashboard:
     tambah_scatter(skenario_df, "Kemungkinan What-If Scenario", "Skala What-If Scenario", '"', "red")
 
     fig.update_layout(
-        height=500,
+        height=550,
         xaxis_title="Skala Dampak",
         yaxis_title="Skala Kemungkinan",
-        margin=dict(l=100, r=40, t=20, b=60),
+        margin=dict(l=120, r=40, t=20, b=60),
         plot_bgcolor="white",
         xaxis=dict(
             side="bottom",
@@ -587,7 +576,8 @@ with tab_dashboard:
             tickfont=dict(size=11),
             categoryorder="array",
             categoryarray=label_kemungkinan,
-            autorange="reversed",
+            # TIDAK pakai autorange="reversed"
+            # Karena kita ingin A di bawah, E di atas.
         ),
     )
 
